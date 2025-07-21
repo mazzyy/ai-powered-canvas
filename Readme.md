@@ -1,10 +1,10 @@
-# 🎨 AI Canvas Studio
+#  AI Canvas Studio
 
 A powerful web-based AI image generator and canvas editor built with **Fabric.js** and **FastAPI**. Create, edit, and enhance images with AI-powered tools and intuitive drag-and-drop editing.
 
 ![AI Canvas Studio Demo](https://via.placeholder.com/800x400/667eea/ffffff?text=AI+Canvas+Studio+Demo)
 
-## ✨ Features
+##  Features
 
 ###  **AI Image Generation**
 - **Text-to-Image**: Generate images from descriptive prompts
@@ -374,4 +374,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ⭐ **Star this repo** if you find it helpful!
 
-**Made with ❤️ by [Your Name](https://github.com/mayyzz)**
+**Made  by [Your Name](https://github.com/mayyzz)**
