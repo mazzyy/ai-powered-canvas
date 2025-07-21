@@ -1,0 +1,2336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator - Fabric.js</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .panel h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #1d1d1f;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .upload-btn:hover {
+            background: #0056cc;
+        }
+
+        .upload-btn.secondary {
+            background: #f2f2f7;
+            color: #1d1d1f;
+            border: 2px solid #e5e5e7;
+        }
+
+        .upload-btn.secondary:hover {
+            background: #e8e8ed;
+        }
+
+        .canvas-container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 600px;
+            max-height: none;
+            height: auto;
+            position: relative;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .fabric-canvas-wrapper {
+            display: block;
+            position: relative;
+            width: auto;
+            height: auto;
+            max-width: none;
+            max-height: none;
+            flex-shrink: 0;
+        }
+
+        .canvas-border {
+            border: 3px solid #007aff;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+            display: block;
+            overflow: visible;
+            transform-origin: center center;
+            flex-shrink: 0;
+            margin: 0 auto;
+        }
+
+        .canvas-border.scaled {
+            transform: scale(var(--canvas-scale, 1));
+        }
+
+        .canvas-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px dashed rgba(0, 122, 255, 0.3);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .canvas-info {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007aff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        #fabricCanvas {
+            border: none;
+            background: transparent;
+            display: block;
+        }
+
+        .canvas-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            pointer-events: none;
+            z-index: 1;
+            width: 100%;
+        }
+
+        .canvas-placeholder h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: #999;
+        }
+
+        .canvas-placeholder p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .canvas-controls button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid transparent;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .canvas-controls button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .canvas-controls button.active {
+            background: #007aff;
+            border-color: #007aff;
+            box-shadow: 0 0 10px rgba(0, 122, 255, 0.4);
+        }
+
+        .text-style-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 12px;
+            padding: 16px;
+            display: none;
+            z-index: 100;
+            min-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+
+        .text-style-panel.visible {
+            display: block;
+        }
+
+        .style-group {
+            margin-bottom: 12px;
+        }
+
+        .style-group label {
+            color: white;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .style-input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #222;
+            color: white;
+            font-size: 12px;
+        }
+
+        .style-buttons {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .style-btn {
+            padding: 6px 12px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .style-btn:hover {
+            background: #444;
+        }
+
+        .style-btn.active {
+            background: #007aff;
+        }
+
+        .opacity-panel {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 12px;
+            padding: 16px;
+            display: none;
+            z-index: 200;
+            min-width: 180px;
+            backdrop-filter: blur(10px);
+        }
+
+        .opacity-panel.visible {
+            display: block;
+        }
+
+        .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .opacity-slider {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            border-radius: 3px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .opacity-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .opacity-value {
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .opacity-label {
+            color: white;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .output-preview {
+            width: 100%;
+            height: 200px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .output-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+        }
+
+        .output-preview .preview-placeholder {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .export-btn:hover {
+            background: #0056cc;
+        }
+
+        .export-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .export-btn.success {
+            background: #34c759 !important;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn.loading {
+            background: #ff9500 !important;
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px 20px;
+            background: #34c759;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .generate-btn:hover {
+            background: #2ea043;
+        }
+
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 20;
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .layer-btn {
+            flex: 1;
+            padding: 8px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .layer-btn:hover {
+            background: #444;
+        }
+
+        .layer-panel {
+            margin-bottom: 20px;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .layer-header {
+            background: #f8f9fa;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1d1d1f;
+        }
+
+        .layer-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .layer-item:hover {
+            background: #f8f9fa;
+        }
+
+        .layer-item.selected {
+            background: #007aff;
+            color: white;
+        }
+
+        .layer-item.selected .layer-controls button {
+            color: white;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .layer-thumbnail {
+            width: 24px;
+            height: 24px;
+            background: #e5e5e7;
+            border-radius: 4px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .layer-thumbnail.image {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .layer-thumbnail.text {
+            background: #2196F3;
+            color: white;
+        }
+
+        .layer-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .layer-name {
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .layer-type {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        .layer-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .layer-controls button {
+            background: transparent;
+            border: 1px solid #ddd;
+            color: #666;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s;
+        }
+
+        .layer-controls button:hover {
+            background: #f0f0f0;
+        }
+
+        .layer-controls .visibility-btn {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layer-controls .lock-btn {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layer-item.hidden {
+            opacity: 0.5;
+        }
+
+        .layer-item.locked .layer-name::after {
+            content: " 🔒";
+        }
+
+        .effects-panel {
+            margin-bottom: 20px;
+            border: 1px solid #e5e5e7;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .effects-header {
+            background: #f8f9fa;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1d1d1f;
+            border-bottom: 1px solid #e5e5e7;
+        }
+
+        .effects-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .effect-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: #f2f2f7;
+            color: #1d1d1f;
+            border: 2px solid #e5e5e7;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .effect-btn:hover {
+            background: #e8e8ed;
+            border-color: #d1d1d6;
+            transform: translateY(-1px);
+        }
+
+        .effect-btn.generate-effect {
+            background: #34c759;
+            color: white;
+            border-color: #34c759;
+        }
+
+        .effect-btn.generate-effect:hover {
+            background: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .effect-btn:disabled {
+            background: #ccc;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .panel {
+                padding: 20px;
+            }
+
+            .text-style-panel {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            .layer-panel {
+                max-height: 150px;
+            }
+            
+            .canvas-container {
+                min-height: auto;
+                max-height: none;
+                height: auto;
+                padding: 10px;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .canvas-container {
+                max-height: none;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Input Panel -->
+        <div class="panel">
+            <h2>Input & Style Options</h2>
+            
+            <div class="form-group">
+                <label>Canvas Size</label>
+                <select class="text-input" id="canvasSizeSelect" onchange="changeCanvasSize(this.value)" style="min-height: auto; height: 40px;">
+                    <option value="800x600">Custom (800×600)</option>
+                    <option value="1080x1080">Instagram Post (1080×1080)</option>
+                    <option value="1080x1920">Instagram Story (1080×1920)</option>
+                    <option value="1200x630">Facebook Post (1200×630)</option>
+                    <option value="1920x1080">YouTube Thumbnail (1920×1080)</option>
+                    <option value="1024x1024">Square (1024×1024)</option>
+                    <option value="1920x1200">Desktop Wallpaper (1920×1200)</option>
+                    <option value="750x1334">iPhone (750×1334)</option>
+                    <option value="1080x2340">Android (1080×2340)</option>
+                    <option value="2560x1440">4K Display (2560×1440)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="textPrompt">Text Prompt</label>
+                <textarea 
+                    id="textPrompt" 
+                    class="text-input" 
+                    placeholder="Describe the image you want to generate..."
+                ></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Image</label>
+                <button class="upload-btn" onclick="triggerUpload('mainImage')">
+                    📁 Upload Image
+                </button>
+                <input type="file" id="mainImage" class="file-input" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label>Reference Style</label>
+                <button class="upload-btn secondary" onclick="triggerUpload('styleImage')">
+                    📁 Upload image
+                </button>
+                <input type="file" id="styleImage" class="file-input" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label>Style URL</label>
+                <input 
+                    type="url" 
+                    id="styleUrl" 
+                    class="text-input" 
+                    placeholder="https://example.com/image.jpg"
+                    style="min-height: auto; height: 40px;"
+                >
+                <button class="upload-btn secondary" onclick="loadImageFromUrl()" style="margin-top: 8px;">
+                    🔗 Load from URL
+                </button>
+            </div>
+
+            <button class="generate-btn" onclick="generateImage()">
+                ✨ Generate Image
+            </button>
+        </div>
+
+        <!-- Main Canvas -->
+        <div class="canvas-container">
+            <div class="canvas-placeholder" id="placeholder">
+                <h3>AI Image Generator</h3>
+                <p>Full resolution editing area</p>
+                <p style="font-size: 12px; margin-top: 8px; opacity: 0.7;" id="placeholderDimensions">Full Canvas: 800×600px</p>
+            </div>
+
+            <div class="fabric-canvas-wrapper">
+                <div class="canvas-border" id="canvasBorder">
+                    <div class="canvas-info" id="canvasInfo">800×600</div>
+                    <canvas id="fabricCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Generating your image...</p>
+            </div>
+
+            <div class="canvas-controls">
+                <button onclick="toggleOpacityPanel()" id="opacityBtn" title="Opacity">1.0</button>
+                <button onclick="addText()" id="textBtn" title="Add Text">W</button>
+                <button onclick="analyzeImage()" title="Image Analysis">IA</button>
+                <button onclick="saveCanvas()" title="Save">📄</button>
+                <button onclick="toggleStylePanel()" id="styleBtn" title="Text Styles">3,5</button>
+                <button onclick="applyEffects()" title="Cycle Through Effects (Shadow/Glow/Filters)">🎲</button>
+                <button onclick="showMore()" title="More Options">⋯</button>
+                
+                <!-- Opacity Panel -->
+                <div class="opacity-panel" id="opacityPanel">
+                    <div class="opacity-label">Object Opacity</div>
+                    <div class="opacity-control">
+                        <input type="range" class="opacity-slider" id="opacitySlider" 
+                               min="0" max="100" value="100"
+                               oninput="adjustOpacity(this.value)">
+                        <div class="opacity-value" id="opacityValue">1.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Style Panel -->
+            <div class="text-style-panel" id="textStylePanel">
+                <div class="style-group">
+                    <label>Font Size</label>
+                    <input type="range" class="style-input" id="fontSizeSlider" 
+                           min="12" max="120" value="40" oninput="updateFontSize(this.value)">
+                    <span id="fontSizeValue" style="color: white; font-size: 10px;">40px</span>
+                </div>
+                
+                <div class="style-group">
+                    <label>Font Family</label>
+                    <select class="style-input" id="fontFamily" onchange="updateFontFamily(this.value)">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Comic Sans MS">Comic Sans MS</option>
+                        <option value="Roboto">Roboto</option>
+                        <option value="Open Sans">Open Sans</option>
+                    </select>
+                </div>
+
+                <div class="style-group">
+                    <label>Text Color</label>
+                    <input type="color" class="style-input" id="textColor" 
+                           value="#ffffff" oninput="updateTextColor(this.value)">
+                </div>
+
+                <div class="style-group">
+                    <label>Stroke Color</label>
+                    <input type="color" class="style-input" id="strokeColor" 
+                           value="#000000" oninput="updateStrokeColor(this.value)">
+                </div>
+
+                <div class="style-group">
+                    <label>Stroke Width</label>
+                    <input type="range" class="style-input" id="strokeWidth" 
+                           min="0" max="10" value="0" oninput="updateStrokeWidth(this.value)">
+                    <span id="strokeWidthValue" style="color: white; font-size: 10px;">0px</span>
+                </div>
+
+                <div class="style-group">
+                    <label>Style</label>
+                    <div class="style-buttons">
+                        <button class="style-btn" id="boldBtn" onclick="toggleBold()">Bold</button>
+                        <button class="style-btn" id="italicBtn" onclick="toggleItalic()">Italic</button>
+                        <button class="style-btn" id="underlineBtn" onclick="toggleUnderline()">Under</button>
+                    </div>
+                </div>
+
+                <div class="style-group">
+                    <label>Text Alignment</label>
+                    <div class="style-buttons">
+                        <button class="style-btn" onclick="setTextAlign('left')">Left</button>
+                        <button class="style-btn active" onclick="setTextAlign('center')">Center</button>
+                        <button class="style-btn" onclick="setTextAlign('right')">Right</button>
+                    </div>
+                </div>
+
+                <div class="style-group">
+                    <label>Background</label>
+                    <div class="style-buttons">
+                        <button class="style-btn" id="bgBtn" onclick="toggleBackground()">Add BG</button>
+                        <input type="color" class="style-input" id="bgColor" 
+                               value="#000000" oninput="updateBackgroundColor(this.value)" style="margin-top: 4px;">
+                    </div>
+                </div>
+
+                <div class="style-group">
+                    <label>Text Effects</label>
+                    <div class="style-buttons">
+                        <button class="style-btn" onclick="addTextShadow()">Shadow</button>
+                        <button class="style-btn" onclick="addTextGlow()">Glow</button>
+                        <button class="style-btn" onclick="clearTextEffects()">Clear</button>
+                    </div>
+                </div>
+
+                <div class="style-group">
+                    <label>Layer Position</label>
+                    <div class="layer-controls">
+                        <button class="layer-btn" onclick="bringToFront()" title="Bring to Front">🔝 Front</button>
+                        <button class="layer-btn" onclick="sendToBack()" title="Send to Back">🔽 Back</button>
+                    </div>
+                </div>
+
+                <div class="style-group">
+                    <button class="style-btn" onclick="deleteSelected()" style="background: #ff3b30; width: 100%; padding: 10px;">Delete Selected</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="panel">
+            <h2>Layers & Export</h2>
+            
+            <!-- Layer Management -->
+            <div class="layer-panel">
+                <div class="layer-header">
+                    <span>Layers</span>
+                    <button class="layer-btn" onclick="addTextLayer()" title="Add Text Layer">+ Text</button>
+                </div>
+                <div class="layer-list" id="layerList">
+                    <!-- Layers will be populated here -->
+                </div>
+            </div>
+            
+            <div class="output-preview" id="outputPreview">
+                <div class="preview-placeholder">Preview will appear here</div>
+            </div>
+
+            <!-- Effects Panel -->
+            <div class="effects-panel">
+                <div class="effects-header">
+                    <span>AI Effects</span>
+                </div>
+                <div class="effects-content">
+                    <button class="effect-btn" onclick="addTextBehind()">
+                        📝 Effect one
+                    </button>
+                    <button class="effect-btn" onclick="applySecondEffect()">
+                        ✨ Effect two
+                    </button>
+                    <button class="effect-btn generate-effect" onclick="regenerateFromAI()">
+                        🔄 Generate button
+                    </button>
+                </div>
+            </div>
+
+            <button class="export-btn" onclick="exportAsPNG()">
+                💾 Export PNG
+            </button>
+            <button class="export-btn" onclick="exportAsJPG()">
+                🖼️ Export JPG
+            </button>
+            <button class="export-btn" onclick="exportAsSVG()">
+                📄 Export SVG
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let canvas;
+        let uploadedImages = {
+            main: null,
+            style: null,
+            url: null
+        };
+        let layers = [];
+        let layerCounter = 0;
+        let currentCanvasSize = { width: 800, height: 600 };
+
+        // Canvas size presets
+        const canvasSizes = {
+            '800x600': { width: 800, height: 600, name: 'Custom' },
+            '1080x1080': { width: 1080, height: 1080, name: 'Instagram Post' },
+            '1080x1920': { width: 1080, height: 1920, name: 'Instagram Story' },
+            '1200x630': { width: 1200, height: 630, name: 'Facebook Post' },
+            '1920x1080': { width: 1920, height: 1080, name: 'YouTube Thumbnail' },
+            '1024x1024': { width: 1024, height: 1024, name: 'Square' },
+            '1920x1200': { width: 1920, height: 1200, name: 'Desktop Wallpaper' },
+            '750x1334': { width: 750, height: 1334, name: 'iPhone' },
+            '1080x2340': { width: 1080, height: 2340, name: 'Android' },
+            '2560x1440': { width: 2560, height: 1440, name: '4K Display' }
+        };
+
+        // Initialize Fabric.js Canvas
+        function initCanvas() {
+            canvas = new fabric.Canvas('fabricCanvas', {
+                width: currentCanvasSize.width,
+                height: currentCanvasSize.height,
+                backgroundColor: 'white',
+                preserveObjectStacking: true,
+                selection: true,
+                allowTouchScrolling: false,
+                moveCursor: 'move',
+                defaultCursor: 'default'
+            });
+
+            // Canvas event listeners
+            canvas.on('selection:created', updateStylePanel);
+            canvas.on('selection:updated', updateStylePanel);
+            canvas.on('selection:cleared', hideStylePanel);
+            canvas.on('object:modified', updatePreview);
+            canvas.on('path:created', updatePreview);
+
+            // Layer management events
+            canvas.on('object:added', handleObjectAdded);
+            canvas.on('object:removed', handleObjectRemoved);
+            canvas.on('selection:created', updateLayerSelection);
+            canvas.on('selection:updated', updateLayerSelection);
+            canvas.on('selection:cleared', clearLayerSelection);
+
+            // Hide placeholder when canvas has objects
+            canvas.on('object:added', () => {
+                document.getElementById('placeholder').style.display = 'none';
+            });
+
+            // Add default text when image is loaded
+            canvas.on('after:render', () => {
+                if (canvas.getObjects().length > 0) {
+                    document.getElementById('placeholder').style.display = 'none';
+                }
+            });
+
+            updateCanvasInfo();
+            
+            // Set canvas size and position after a brief delay
+            setTimeout(() => {
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+            }, 100);
+        }
+
+        function resizeCanvas() {
+            // Set canvas to EXACT resolution dimensions - NO COMPROMISES
+            canvas.setDimensions({
+                width: currentCanvasSize.width,
+                height: currentCanvasSize.height
+            });
+
+            // Set canvas element to exact resolution size - NO SCALING
+            const canvasElement = canvas.getElement();
+            canvasElement.style.width = currentCanvasSize.width + 'px';
+            canvasElement.style.height = currentCanvasSize.height + 'px';
+            canvasElement.style.transform = 'none';
+            canvasElement.style.position = 'static';
+
+            // Set border container to exact canvas size - NO SCALING
+            const canvasBorder = document.getElementById('canvasBorder');
+            canvasBorder.style.width = currentCanvasSize.width + 'px';
+            canvasBorder.style.height = currentCanvasSize.height + 'px';
+            canvasBorder.style.transform = 'none';
+            canvasBorder.style.position = 'static';
+            canvasBorder.style.margin = '0 auto';
+            canvasBorder.classList.remove('scaled');
+
+            // NEVER use any Fabric.js zoom or transforms
+            canvas.setZoom(1);
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+            canvas.calcOffset();
+            canvas.renderAll();
+        }
+
+        function changeCanvasSize(sizeKey) {
+            const size = canvasSizes[sizeKey];
+            if (!size) return;
+
+            // Store previous objects
+            const objects = canvas.getObjects();
+            
+            // Update current canvas size
+            currentCanvasSize = { width: size.width, height: size.height };
+            
+            // Set canvas to EXACT dimensions with NO constraints whatsoever
+            canvas.setDimensions({
+                width: size.width,
+                height: size.height
+            });
+
+            // Remove ALL container constraints - let it be as tall as needed
+            const container = document.querySelector('.canvas-container');
+            container.style.maxHeight = 'none';
+            container.style.height = 'auto';
+            container.style.minHeight = 'auto';
+
+            updateCanvasInfo();
+            
+            // Force a resize and re-render
+            setTimeout(() => {
+                resizeCanvas();
+                canvas.renderAll();
+                updatePreview();
+            }, 50);
+        }
+
+        function updateCanvasInfo() {
+            const info = document.getElementById('canvasInfo');
+            const placeholderDims = document.getElementById('placeholderDimensions');
+            const sizeKey = `${currentCanvasSize.width}x${currentCanvasSize.height}`;
+            const sizeData = canvasSizes[sizeKey];
+            
+            const dimensionText = `${currentCanvasSize.width}×${currentCanvasSize.height}px`;
+            
+            if (sizeData) {
+                info.textContent = `${sizeData.name} - ${dimensionText}`;
+            } else {
+                info.textContent = `Custom - ${dimensionText}`;
+            }
+            
+            // Update placeholder dimensions
+            if (placeholderDims) {
+                placeholderDims.textContent = `Full Canvas: ${dimensionText}`;
+            }
+            
+            // Also update the dropdown to match current size
+            const dropdown = document.getElementById('canvasSizeSelect');
+            if (dropdown) {
+                dropdown.value = sizeKey;
+            }
+        }
+
+        // Initialize application
+        function init() {
+            initCanvas();
+            setupFileUploads();
+            setupEventListeners();
+            updateLayerList();
+            updateCanvasInfo();
+        }
+
+        // Setup file upload handlers
+        function setupFileUploads() {
+            ['mainImage', 'styleImage'].forEach(id => {
+                const input = document.getElementById(id);
+                input.addEventListener('change', handleFileUpload);
+            });
+        }
+
+        function setupEventListeners() {
+            const textPrompt = document.getElementById('textPrompt');
+            textPrompt.addEventListener('input', validateForm);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Check if we're editing text - if so, don't handle delete/backspace
+                const activeObj = canvas.getActiveObject();
+                const isEditingText = activeObj && activeObj.type === 'i-text' && activeObj.isEditing;
+                
+                if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditingText) {
+                    e.preventDefault();
+                    deleteSelected();
+                }
+                if (e.key === 'Escape') {
+                    canvas.discardActiveObject();
+                    canvas.renderAll();
+                }
+                // Copy/Paste - only when not editing text
+                if (e.ctrlKey && e.key === 'c' && !isEditingText) {
+                    copySelected();
+                }
+                if (e.ctrlKey && e.key === 'v' && !isEditingText) {
+                    pasteSelected();
+                }
+            });
+
+            // Close panels when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.text-style-panel') && 
+                    !e.target.closest('#styleBtn') &&
+                    !e.target.closest('.opacity-panel') &&
+                    !e.target.closest('#opacityBtn')) {
+                    
+                    const stylePanel = document.getElementById('textStylePanel');
+                    const opacityPanel = document.getElementById('opacityPanel');
+                    
+                    if (stylePanel.classList.contains('visible')) {
+                        stylePanel.classList.remove('visible');
+                        document.getElementById('styleBtn').classList.remove('active');
+                    }
+                    
+                    if (opacityPanel.classList.contains('visible')) {
+                        opacityPanel.classList.remove('visible');
+                        document.getElementById('opacityBtn').classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        // File upload handling
+        function triggerUpload(inputId) {
+            document.getElementById(inputId).click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                const inputId = event.target.id;
+                
+                switch(inputId) {
+                    case 'mainImage':
+                        uploadedImages.main = imageData;
+                        loadImageToCanvas(imageData);
+                        break;
+                    case 'styleImage':
+                        uploadedImages.style = imageData;
+                        break;
+                }
+                
+                validateForm();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadImageFromUrl() {
+            const url = document.getElementById('styleUrl').value.trim();
+            
+            if (!url) {
+                alert('Please enter a valid image URL');
+                return;
+            }
+            
+            if (!isValidImageUrl(url)) {
+                alert('Please enter a valid image URL (jpg, jpeg, png, gif, webp)');
+                return;
+            }
+            
+            const btn = document.querySelector('button[onclick="loadImageFromUrl()"]');
+            btn.textContent = '⏳ Loading...';
+            btn.disabled = true;
+            
+            fabric.Image.fromURL(url, function(img) {
+                uploadedImages.url = url;
+                
+                btn.textContent = '✓ Loaded Successfully';
+                btn.style.background = '#34c759';
+                btn.disabled = false;
+                
+                setTimeout(() => {
+                    btn.textContent = '🔗 Load from URL';
+                    btn.style.background = '#f2f2f7';
+                }, 2000);
+                
+                validateForm();
+            }, {
+                crossOrigin: 'anonymous'
+            });
+        }
+
+        function isValidImageUrl(url) {
+            try {
+                new URL(url);
+                return /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i.test(url);
+            } catch {
+                return false;
+            }
+        }
+
+        function loadImageToCanvas(imageSrc) {
+            fabric.Image.fromURL(imageSrc, function(img) {
+                // Start with a small size so user can see the full canvas area
+                const canvasWidth = currentCanvasSize.width;
+                const canvasHeight = currentCanvasSize.height;
+                
+                // Start with a modest size - user can resize to fill entire canvas
+                const scaleToFitWidth = canvasWidth / img.width;
+                const scaleToFitHeight = canvasHeight / img.height;
+                const initialScale = Math.min(scaleToFitWidth, scaleToFitHeight) * 0.5;
+                
+                img.set({
+                    scaleX: initialScale,
+                    scaleY: initialScale,
+                    left: canvasWidth / 2,
+                    top: canvasHeight / 2,
+                    originX: 'center',
+                    originY: 'center',
+                    selectable: true,
+                    evented: true,
+                    hasControls: true,
+                    hasBorders: true,
+                    hasRotatingPoint: true,
+                    minScaleLimit: 0.01, 
+                    maxWidth: canvasWidth * 10,
+                    maxHeight: canvasHeight * 10,
+                    lockMovementX: false,
+                    lockMovementY: false,
+                    lockScalingX: false,
+                    lockScalingY: false,
+                    lockRotation: false,
+                    layerId: generateLayerId(),
+                    layerName: 'Background Image',
+                    layerType: 'image'
+                });
+                
+                canvas.add(img);
+                canvas.sendToBack(img);
+                canvas.setActiveObject(img);
+                canvas.renderAll();
+                
+                setTimeout(() => {
+                    addDefaultText();
+                }, 100);
+                
+                updatePreview();
+            });
+        }
+
+        function validateForm() {
+            const textPrompt = document.getElementById('textPrompt').value.trim();
+            const hasUploadedImage = uploadedImages.main !== null;
+            const generateBtn = document.querySelector('.generate-btn');
+            
+            generateBtn.disabled = !(textPrompt || hasUploadedImage);
+        }
+
+        function generateImage() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const generateBtn = document.querySelector('.generate-btn');
+            
+            loadingIndicator.style.display = 'block';
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Create mock generated image with current canvas size
+                const mockCanvas = document.createElement('canvas');
+                mockCanvas.width = currentCanvasSize.width;
+                mockCanvas.height = currentCanvasSize.height;
+                const ctx = mockCanvas.getContext('2d');
+                
+                // Create gradient
+                const gradient = ctx.createLinearGradient(0, 0, currentCanvasSize.width, currentCanvasSize.height);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, currentCanvasSize.width, currentCanvasSize.height);
+                
+                // Add pattern
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                const patternCount = Math.floor((currentCanvasSize.width * currentCanvasSize.height) / 8000);
+                for (let i = 0; i < patternCount; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        Math.random() * currentCanvasSize.width,
+                        Math.random() * currentCanvasSize.height,
+                        Math.random() * 30 + 5,
+                        0,
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                
+                const generatedImageData = mockCanvas.toDataURL();
+                loadImageToCanvas(generatedImageData);
+                
+                loadingIndicator.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.textContent = '✨ Generate Image';
+                
+                validateForm();
+            }, 3000);
+        }
+
+        // Text and styling functions
+        function addText() {
+            const text = new fabric.IText('AI GENERATED', {
+                left: currentCanvasSize.width / 2,
+                top: currentCanvasSize.height / 2,
+                originX: 'center',
+                originY: 'center',
+                fontSize: 40,
+                fill: '#ffffff',
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                hasRotatingPoint: true,
+                minScaleLimit: 0.1,
+                layerId: generateLayerId(),
+                layerName: 'Text Layer',
+                layerType: 'text',
+                shadow: new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.8)',
+                    blur: 4,
+                    offsetX: 2,
+                    offsetY: 2
+                })
+            });
+            
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            canvas.renderAll();
+            updatePreview();
+        }
+
+        function addTextLayer() {
+            addText();
+        }
+
+        function addDefaultText() {
+            if (canvas.getObjects().filter(obj => obj.type === 'i-text').length === 0) {
+                addText();
+            }
+        }
+
+        // Layer Management Functions
+        function generateLayerId() {
+            return `layer_${++layerCounter}`;
+        }
+
+        function handleObjectAdded(e) {
+            const obj = e.target;
+            
+            // Assign layer properties if not already assigned
+            if (!obj.layerId) {
+                obj.layerId = generateLayerId();
+                obj.layerName = obj.type === 'i-text' ? `Text Layer ${layerCounter}` : 
+                               obj.type === 'image' ? `Image Layer ${layerCounter}` : 
+                               `Layer ${layerCounter}`;
+                obj.layerType = obj.type === 'i-text' ? 'text' : 
+                               obj.type === 'image' ? 'image' : 'object';
+            }
+            
+            updateLayerList();
+        }
+
+        function handleObjectRemoved(e) {
+            updateLayerList();
+        }
+
+        function updateLayerList() {
+            const layerList = document.getElementById('layerList');
+            layerList.innerHTML = '';
+            
+            // Get objects in reverse order (top to bottom in layer list)
+            const objects = canvas.getObjects().slice().reverse();
+            
+            objects.forEach((obj, index) => {
+                const layerItem = createLayerItem(obj, objects.length - 1 - index);
+                layerList.appendChild(layerItem);
+            });
+        }
+
+        function createLayerItem(obj, zIndex) {
+            const layerItem = document.createElement('div');
+            layerItem.className = 'layer-item';
+            layerItem.dataset.layerId = obj.layerId;
+            
+            // Add hidden class if object is not visible
+            if (!obj.visible) {
+                layerItem.classList.add('hidden');
+            }
+            
+            // Add locked class if object is not selectable
+            if (!obj.selectable) {
+                layerItem.classList.add('locked');
+            }
+            
+            layerItem.innerHTML = `
+                <div class="layer-thumbnail ${obj.layerType}">
+                    ${obj.layerType === 'text' ? 'T' : obj.layerType === 'image' ? 'IMG' : 'OBJ'}
+                </div>
+                <div class="layer-info">
+                    <div class="layer-name">${obj.layerName || `Layer ${zIndex + 1}`}</div>
+                    <div class="layer-type">${obj.layerType || obj.type}</div>
+                </div>
+                <div class="layer-controls">
+                    <button class="visibility-btn" onclick="toggleLayerVisibility('${obj.layerId}')" title="Toggle Visibility">
+                        ${obj.visible !== false ? '👁️' : '🚫'}
+                    </button>
+                    <button class="lock-btn" onclick="toggleLayerLock('${obj.layerId}')" title="Toggle Lock">
+                        ${obj.selectable !== false ? '🔓' : '🔒'}
+                    </button>
+                    <button onclick="deleteLayer('${obj.layerId}')" title="Delete Layer">🗑️</button>
+                </div>
+            `;
+            
+            // Click to select layer
+            layerItem.addEventListener('click', (e) => {
+                if (!e.target.closest('.layer-controls')) {
+                    selectLayerById(obj.layerId);
+                }
+            });
+            
+            return layerItem;
+        }
+
+        function selectLayerById(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                canvas.setActiveObject(obj);
+                canvas.renderAll();
+            }
+        }
+
+        function updateLayerSelection() {
+            const activeObj = canvas.getActiveObject();
+            
+            // Clear all selections in layer list
+            document.querySelectorAll('.layer-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Highlight selected layer
+            if (activeObj && activeObj.layerId) {
+                const layerItem = document.querySelector(`[data-layer-id="${activeObj.layerId}"]`);
+                if (layerItem) {
+                    layerItem.classList.add('selected');
+                }
+            }
+        }
+
+        function clearLayerSelection() {
+            document.querySelectorAll('.layer-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function toggleLayerVisibility(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                obj.set('visible', !obj.visible);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function toggleLayerLock(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                obj.set('selectable', !obj.selectable);
+                obj.set('evented', obj.selectable);
+                canvas.renderAll();
+                updateLayerList();
+                
+                // If we just locked the active object, deselect it
+                if (!obj.selectable && canvas.getActiveObject() === obj) {
+                    canvas.discardActiveObject();
+                    canvas.renderAll();
+                }
+            }
+        }
+
+        function deleteLayer(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                canvas.remove(obj);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function moveLayerUp(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                canvas.bringForward(obj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function moveLayerDown(layerId) {
+            const obj = canvas.getObjects().find(o => o.layerId === layerId);
+            if (obj) {
+                canvas.sendBackward(obj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function toggleOpacityPanel() {
+            const panel = document.getElementById('opacityPanel');
+            const btn = document.getElementById('opacityBtn');
+            
+            panel.classList.toggle('visible');
+            btn.classList.toggle('active');
+            
+            if (panel.classList.contains('visible')) {
+                const activeObj = canvas.getActiveObject();
+                if (activeObj) {
+                    const opacity = activeObj.opacity || 1;
+                    document.getElementById('opacitySlider').value = opacity * 100;
+                    document.getElementById('opacityValue').textContent = opacity.toFixed(1);
+                    document.getElementById('opacityBtn').textContent = opacity.toFixed(1);
+                }
+            }
+        }
+
+        function adjustOpacity(value) {
+            const opacity = value / 100;
+            document.getElementById('opacityValue').textContent = opacity.toFixed(1);
+            document.getElementById('opacityBtn').textContent = opacity.toFixed(1);
+            
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                activeObj.set('opacity', opacity);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function toggleStylePanel() {
+            const panel = document.getElementById('textStylePanel');
+            const btn = document.getElementById('styleBtn');
+            
+            panel.classList.toggle('visible');
+            btn.classList.toggle('active');
+            
+            if (panel.classList.contains('visible')) {
+                updateStylePanelValues();
+            }
+        }
+
+        function updateStylePanel() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                // Auto-open style panel for text objects
+                if (!document.getElementById('textStylePanel').classList.contains('visible')) {
+                    toggleStylePanel();
+                }
+                updateStylePanelValues();
+            }
+            
+            // Update opacity button
+            if (activeObj) {
+                const opacity = activeObj.opacity || 1;
+                document.getElementById('opacityBtn').textContent = opacity.toFixed(1);
+            }
+        }
+
+        function hideStylePanel() {
+            // Don't auto-hide, let user control
+        }
+
+        function updateStylePanelValues() {
+            const activeObj = canvas.getActiveObject();
+            if (!activeObj || activeObj.type !== 'i-text') return;
+            
+            document.getElementById('fontSizeSlider').value = activeObj.fontSize || 40;
+            document.getElementById('fontSizeValue').textContent = (activeObj.fontSize || 40) + 'px';
+            document.getElementById('fontFamily').value = activeObj.fontFamily || 'Arial';
+            document.getElementById('textColor').value = activeObj.fill || '#ffffff';
+            document.getElementById('strokeColor').value = activeObj.stroke || '#000000';
+            document.getElementById('strokeWidth').value = activeObj.strokeWidth || 0;
+            document.getElementById('strokeWidthValue').textContent = (activeObj.strokeWidth || 0) + 'px';
+            
+            // Update style buttons
+            document.getElementById('boldBtn').classList.toggle('active', activeObj.fontWeight === 'bold');
+            document.getElementById('italicBtn').classList.toggle('active', activeObj.fontStyle === 'italic');
+            document.getElementById('underlineBtn').classList.toggle('active', activeObj.underline);
+            document.getElementById('bgBtn').classList.toggle('active', activeObj.backgroundColor);
+            
+            if (activeObj.backgroundColor) {
+                document.getElementById('bgColor').value = activeObj.backgroundColor;
+            }
+        }
+
+        function updateFontSize(size) {
+            document.getElementById('fontSizeValue').textContent = size + 'px';
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('fontSize', parseInt(size));
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function updateFontFamily(family) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('fontFamily', family);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function updateTextColor(color) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('fill', color);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function updateStrokeColor(color) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('stroke', color);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function updateStrokeWidth(width) {
+            document.getElementById('strokeWidthValue').textContent = width + 'px';
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('strokeWidth', parseInt(width));
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function toggleBold() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                const isBold = activeObj.fontWeight === 'bold';
+                activeObj.set('fontWeight', isBold ? 'normal' : 'bold');
+                document.getElementById('boldBtn').classList.toggle('active', !isBold);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function toggleItalic() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                const isItalic = activeObj.fontStyle === 'italic';
+                activeObj.set('fontStyle', isItalic ? 'normal' : 'italic');
+                document.getElementById('italicBtn').classList.toggle('active', !isItalic);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function toggleUnderline() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                const isUnderline = activeObj.underline;
+                activeObj.set('underline', !isUnderline);
+                document.getElementById('underlineBtn').classList.toggle('active', !isUnderline);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function setTextAlign(align) {
+            // Update button states
+            document.querySelectorAll('[onclick^="setTextAlign"]').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="setTextAlign('${align}')"]`).classList.add('active');
+            
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('textAlign', align);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function toggleBackground() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                const hasBackground = activeObj.backgroundColor;
+                const bgColor = hasBackground ? null : document.getElementById('bgColor').value;
+                activeObj.set('backgroundColor', bgColor);
+                document.getElementById('bgBtn').classList.toggle('active', !hasBackground);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function updateBackgroundColor(color) {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                if (activeObj.backgroundColor) {
+                    activeObj.set('backgroundColor', color);
+                    canvas.renderAll();
+                    updatePreview();
+                } else {
+                    // If background is not enabled, enable it with the new color
+                    activeObj.set('backgroundColor', color);
+                    document.getElementById('bgBtn').classList.add('active');
+                    canvas.renderAll();
+                    updatePreview();
+                }
+            }
+        }
+
+        // Layer controls
+        function bringToFront() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.bringToFront(activeObj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function sendToBack() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.sendToBack(activeObj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function bringForward() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.bringForward(activeObj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function sendBackward() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.sendBackward(activeObj);
+                canvas.renderAll();
+                updateLayerList();
+                updatePreview();
+            }
+        }
+
+        function deleteSelected() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                canvas.remove(activeObj);
+                canvas.renderAll();
+                updatePreview();
+            }
+        }
+
+        function copySelected() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                activeObj.clone(function(cloned) {
+                    window.clipboard = cloned;
+                });
+            }
+        }
+
+        function pasteSelected() {
+            if (window.clipboard) {
+                window.clipboard.clone(function(cloned) {
+                    canvas.discardActiveObject();
+                    cloned.set({
+                        left: cloned.left + 10,
+                        top: cloned.top + 10,
+                        evented: true,
+                        layerId: generateLayerId(),
+                        layerName: `${cloned.layerName || 'Object'} Copy`,
+                        layerType: cloned.layerType || 'object'
+                    });
+                    if (cloned.type === 'activeSelection') {
+                        cloned.canvas = canvas;
+                        cloned.forEachObject(function(obj) {
+                            obj.layerId = generateLayerId();
+                            obj.layerName = `${obj.layerName || 'Object'} Copy`;
+                            canvas.add(obj);
+                        });
+                        cloned.setCoords();
+                    } else {
+                        canvas.add(cloned);
+                    }
+                    canvas.setActiveObject(cloned);
+                    canvas.requestRenderAll();
+                    updatePreview();
+                });
+            }
+        }
+
+        // Utility functions
+        function analyzeImage() {
+            alert('Image Analysis: This would analyze the current canvas content and provide insights.');
+        }
+
+        function saveCanvas() {
+            exportAsPNG();
+        }
+
+        function applyEffects() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                // Cycle through different shadow effects for text
+                const effects = [
+                    null, // No shadow
+                    new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.8)',
+                        blur: 4,
+                        offsetX: 2,
+                        offsetY: 2
+                    }),
+                    new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.6)',
+                        blur: 8,
+                        offsetX: 4,
+                        offsetY: 4
+                    }),
+                    new fabric.Shadow({
+                        color: 'rgba(255,255,255,0.8)',
+                        blur: 6,
+                        offsetX: 0,
+                        offsetY: 0
+                    })
+                ];
+                
+                const currentShadow = activeObj.shadow;
+                let nextIndex = 0;
+                
+                if (currentShadow) {
+                    // Find current effect and move to next
+                    for (let i = 1; i < effects.length; i++) {
+                        if (effects[i] && 
+                            currentShadow.blur === effects[i].blur && 
+                            currentShadow.offsetX === effects[i].offsetX) {
+                            nextIndex = (i + 1) % effects.length;
+                            break;
+                        }
+                    }
+                } else {
+                    nextIndex = 1; // Start with first shadow effect
+                }
+                
+                activeObj.set('shadow', effects[nextIndex]);
+                canvas.renderAll();
+                updatePreview();
+            } else if (activeObj) {
+                // For non-text objects, apply filters
+                const filters = [
+                    null,
+                    new fabric.Image.filters.Brightness({ brightness: 0.2 }),
+                    new fabric.Image.filters.Contrast({ contrast: 0.3 }),
+                    new fabric.Image.filters.Saturation({ saturation: -0.5 })
+                ];
+                
+                const currentFilters = activeObj.filters || [];
+                const nextIndex = (currentFilters.length) % filters.length;
+                
+                if (filters[nextIndex]) {
+                    activeObj.filters = [filters[nextIndex]];
+                } else {
+                    activeObj.filters = [];
+                }
+                
+                activeObj.applyFilters();
+                canvas.renderAll();
+                updatePreview();
+            } else {
+                alert('Select an object first to apply effects');
+            }
+        }
+
+        // New text effect functions
+        function addTextShadow() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('shadow', new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.8)',
+                    blur: 4,
+                    offsetX: 3,
+                    offsetY: 3
+                }));
+                canvas.renderAll();
+                updatePreview();
+            } else {
+                alert('Select a text object first');
+            }
+        }
+
+        function addTextGlow() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('shadow', new fabric.Shadow({
+                    color: activeObj.fill || '#ffffff',
+                    blur: 10,
+                    offsetX: 0,
+                    offsetY: 0
+                }));
+                canvas.renderAll();
+                updatePreview();
+            } else {
+                alert('Select a text object first');
+            }
+        }
+
+        function clearTextEffects() {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'i-text') {
+                activeObj.set('shadow', null);
+                canvas.renderAll();
+                updatePreview();
+            } else {
+                alert('Select a text object first');
+            }
+        }
+
+        // New feature functions
+        function addTextBehind() {
+            const text = new fabric.IText('BACKGROUND TEXT', {
+                left: currentCanvasSize.width / 2,
+                top: currentCanvasSize.height / 2,
+                originX: 'center',
+                originY: 'center',
+                fontSize: 60,
+                fill: 'rgba(255, 255, 255, 0.3)',
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                hasRotatingPoint: true,
+                minScaleLimit: 0.1,
+                layerId: generateLayerId(),
+                layerName: 'Background Text',
+                layerType: 'text'
+            });
+            
+            canvas.add(text);
+            canvas.sendToBack(text); // Send to back immediately
+            canvas.setActiveObject(text);
+            canvas.renderAll();
+            updatePreview();
+            
+            // Show success message briefly
+            const btn = document.querySelector('button[onclick="addTextBehind()"]');
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Effect Applied!';
+            btn.style.background = '#34c759';
+            btn.style.borderColor = '#34c759';
+            btn.style.color = 'white';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '#f2f2f7';
+                btn.style.borderColor = '#e5e5e7';
+                btn.style.color = '#1d1d1f';
+            }, 1500);
+        }
+
+        function applySecondEffect() {
+            const activeObj = canvas.getActiveObject();
+            
+            if (activeObj && activeObj.type === 'i-text') {
+                // Apply gradient text effect
+                const gradient = new fabric.Gradient({
+                    type: 'linear',
+                    gradientUnits: 'percentage',
+                    coords: { x1: 0, y1: 0, x2: 1, y2: 1 },
+                    colorStops: [
+                        { offset: 0, color: '#ff6b6b' },
+                        { offset: 0.33, color: '#4ecdc4' },
+                        { offset: 0.66, color: '#45b7d1' },
+                        { offset: 1, color: '#96ceb4' }
+                    ]
+                });
+                
+                activeObj.set('fill', gradient);
+                activeObj.set('shadow', new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.5)',
+                    blur: 8,
+                    offsetX: 0,
+                    offsetY: 4
+                }));
+                
+                canvas.renderAll();
+                updatePreview();
+                
+                // Show success message
+                const btn = document.querySelector('button[onclick="applySecondEffect()"]');
+                const originalText = btn.textContent;
+                btn.textContent = '✨ Effect Applied!';
+                btn.style.background = '#34c759';
+                btn.style.borderColor = '#34c759';
+                btn.style.color = 'white';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#f2f2f7';
+                    btn.style.borderColor = '#e5e5e7';
+                    btn.style.color = '#1d1d1f';
+                }, 1500);
+                
+            } else if (activeObj && activeObj.type === 'image') {
+                // Apply vintage filter to images
+                const vintage = new fabric.Image.filters.Vintage();
+                const sepia = new fabric.Image.filters.Sepia();
+                
+                activeObj.filters = [sepia, vintage];
+                activeObj.applyFilters();
+                canvas.renderAll();
+                updatePreview();
+                
+                // Show success message
+                const btn = document.querySelector('button[onclick="applySecondEffect()"]');
+                const originalText = btn.textContent;
+                btn.textContent = '🎨 Vintage Applied!';
+                btn.style.background = '#34c759';
+                btn.style.borderColor = '#34c759';
+                btn.style.color = 'white';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#f2f2f7';
+                    btn.style.borderColor = '#e5e5e7';
+                    btn.style.color = '#1d1d1f';
+                }, 1500);
+                
+            } else {
+                alert('Select a text or image object first to apply the second effect');
+            }
+        }
+
+        function regenerateFromAI() {
+            const btn = document.querySelector('button[onclick="regenerateFromAI()"]');
+            const originalText = btn.textContent;
+            
+            // Show loading state
+            btn.textContent = '🔄 Generating...';
+            btn.disabled = true;
+            btn.style.background = '#ff9500';
+            btn.style.borderColor = '#ff9500';
+            
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+            
+            // Clear current generated content (keep user-added text)
+            const objects = canvas.getObjects();
+            objects.forEach(obj => {
+                if (obj.layerType === 'image' && obj.layerName && 
+                    (obj.layerName.includes('Background Image') || obj.layerName.includes('Generated'))) {
+                    canvas.remove(obj);
+                }
+            });
+            
+            // Simulate AI regeneration
+            setTimeout(() => {
+                // Create new mock generated image with different style
+                const mockCanvas = document.createElement('canvas');
+                mockCanvas.width = currentCanvasSize.width;
+                mockCanvas.height = currentCanvasSize.height;
+                const ctx = mockCanvas.getContext('2d');
+                
+                // Create different gradient
+                const gradient = ctx.createRadialGradient(
+                    currentCanvasSize.width/2, currentCanvasSize.height/2, 0,
+                    currentCanvasSize.width/2, currentCanvasSize.height/2, 
+                    Math.min(currentCanvasSize.width, currentCanvasSize.height)/2
+                );
+                gradient.addColorStop(0, '#ff9a9e');
+                gradient.addColorStop(0.5, '#fecfef');
+                gradient.addColorStop(1, '#fecfef');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, currentCanvasSize.width, currentCanvasSize.height);
+                
+                // Add geometric pattern
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                const patternSize = 40;
+                for (let x = 0; x < currentCanvasSize.width; x += patternSize) {
+                    for (let y = 0; y < currentCanvasSize.height; y += patternSize) {
+                        if ((x + y) % (patternSize * 2) === 0) {
+                            ctx.fillRect(x, y, patternSize/2, patternSize/2);
+                        }
+                    }
+                }
+                
+                const regeneratedImageData = mockCanvas.toDataURL();
+                loadImageToCanvas(regeneratedImageData);
+                
+                // Update the new image's layer name
+                setTimeout(() => {
+                    const newImage = canvas.getObjects().find(obj => obj.type === 'image');
+                    if (newImage) {
+                        newImage.layerName = 'Regenerated Image';
+                        updateLayerList();
+                    }
+                }, 100);
+                
+                loadingIndicator.style.display = 'none';
+                btn.disabled = false;
+                btn.textContent = '✅ Generated!';
+                btn.style.background = '#34c759';
+                btn.style.borderColor = '#34c759';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#34c759';
+                    btn.style.borderColor = '#34c759';
+                }, 2000);
+                
+            }, 2500);
+        }
+
+        function showMore() {
+            alert(`💡 How to Use Full Canvas Area & New Features:
+
+📐 Canvas Sizes:
+• iPhone (750×1334px) - Full portrait resolution
+• Instagram Story (1080×1920px) - Complete vertical space
+• YouTube Thumbnail (1920×1080px) - Full landscape area
+• All formats use their EXACT pixel dimensions
+
+🖼️ Using Full Canvas Space:
+• The WHITE area is your full canvas - use every pixel!
+• Drag images to ANY part of the white space
+• Resize images to fill entire canvas if needed
+• No artificial boundaries - full resolution editing
+
+🆕 NEW FEATURES:
+• 📝 Add Text Behind Object - Creates text layer behind other elements
+• ✨ Second Effect - Applies gradient/vintage effects to selected objects
+• 🔄 Regenerate from AI - Creates new AI background while keeping your text
+
+📱 iPhone Canvas Tips:
+• White area = entire 750×1334px iPhone screen
+• Drag image to bottom white space to use full height
+• Resize corner handles to make image as tall as needed
+• Image can cover entire canvas area
+
+🎯 Troubleshooting:
+• Can't resize? Click image first to see handles
+• Can't reach bottom? Try dragging from image center
+• Need more space? The full white area is available
+• Still limited? Try refreshing the page
+
+✨ The blue border shows your EXACT export resolution!`);
+        }
+
+        // Export functions
+        function exportAsPNG() {
+            const dataURL = canvas.toDataURL('image/png');
+            downloadImage(dataURL, 'ai-generated-image.png');
+            updatePreview();
+        }
+
+        function exportAsJPG() {
+            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+            downloadImage(dataURL, 'ai-generated-image.jpg');
+            updatePreview();
+        }
+
+        function exportAsSVG() {
+            const svg = canvas.toSVG();
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.download = 'ai-generated-image.svg';
+            link.href = url;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            updatePreview();
+        }
+
+        function downloadImage(dataURL, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataURL;
+            link.click();
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('outputPreview');
+            const dataURL = canvas.toDataURL('image/png');
+            
+            preview.innerHTML = `
+                <img src="${dataURL}" alt="Preview">
+                <div class="preview-overlay">AI GENERATED</div>
+            `;
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
