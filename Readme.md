@@ -6,26 +6,26 @@ A powerful web-based AI image generator and canvas editor built with **Fabric.js
 
 ## ✨ Features
 
-### 🖼️ **AI Image Generation**
+###  **AI Image Generation**
 - **Text-to-Image**: Generate images from descriptive prompts
 - **Style Transfer**: Apply artistic styles from reference images
 - **Image Enhancement**: AI-powered upscaling and filtering
 - **Smart Composition**: Intelligent layout suggestions
 
-### 🎯 **Canvas Editing**
+###  **Canvas Editing**
 - **Multi-format Support**: Instagram, YouTube, Facebook, and custom sizes
 - **Layer Management**: Advanced layer controls with visibility and locking
 - **Text Styling**: Rich text editing with fonts, colors, and effects
 - **Image Manipulation**: Resize, rotate, crop, and transform images
 - **Real-time Preview**: Live preview of all changes
 
-### 🚀 **Export Options**
+### **Export Options**
 - **Multiple Formats**: PNG, JPG, SVG export
 - **Full Resolution**: Export at exact canvas resolution
 - **Batch Export**: Export multiple variations
 - **Cloud Integration**: Save to cloud storage
 
-## 🏗️ Architecture
+##  Architecture
 
 ```mermaid
 graph TB
@@ -47,7 +47,7 @@ graph TB
     E --> E3[Google Cloud]
 ```
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### **Frontend**
 - **HTML5 Canvas** - Core rendering engine
@@ -74,7 +74,7 @@ graph TB
 - **AWS S3** - File storage
 - **GitHub Actions** - CI/CD pipeline
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - **Python 3.9+**
@@ -263,7 +263,7 @@ pytest --cov=app tests/
 coverage html
 ```
 
-## 🚀 Deployment
+##  Deployment
 
 ### **Production Docker Setup**
 ```bash
@@ -312,7 +312,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **Documentation**: Update README for new features
 - **Testing**: Add tests for new functionality
 
-## 📈 Performance
+##  Performance
 
 ### **Benchmarks**
 - **Image Generation**: ~5-15 seconds (depending on model)
@@ -326,7 +326,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **Batch operations** when possible
 - **Use CDN** for static assets
 
-## 🔒 Security
+##  Security
 
 - **API Rate Limiting**: 100 requests/minute per IP
 - **Input Validation**: All inputs sanitized and validated
@@ -358,11 +358,11 @@ docker system prune -a
 docker-compose up --build
 ```
 
-## 📄 License
+##  License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **Fabric.js** - Amazing canvas library
 - **FastAPI** - High-performance Python framework
@@ -370,15 +370,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **OpenAI** - CLIP and GPT models
 - **Hugging Face** - Model hosting and APIs
 
-## 📞 Support
-
-- **Documentation**: [Wiki](https://github.com/yourusername/ai-canvas-studio/wiki)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/ai-canvas-studio/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/ai-canvas-studio/discussions)
-- **Email**: support@aicanvasstudio.com
-
 ---
 
 ⭐ **Star this repo** if you find it helpful!
 
-**Made with ❤️ by [Your Name](https://github.com/yourusername)**
+**Made with ❤️ by [Your Name](https://github.com/mayyzz)**

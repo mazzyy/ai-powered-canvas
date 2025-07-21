@@ -701,17 +701,6 @@
             transform: translateY(-1px);
         }
 
-        .effect-btn.generate-effect {
-            background: #34c759;
-            color: white;
-            border-color: #34c759;
-        }
-
-        .effect-btn.generate-effect:hover {
-            background: #2ea043;
-            border-color: #2ea043;
-        }
-
         .effect-btn:disabled {
             background: #ccc;
             color: #999;
@@ -984,13 +973,10 @@
                 </div>
                 <div class="effects-content">
                     <button class="effect-btn" onclick="addTextBehind()">
-                        📝 Effect one
+                        📝 Text behind object
                     </button>
-                    <button class="effect-btn" onclick="applySecondEffect()">
-                        ✨ Effect two
-                    </button>
-                    <button class="effect-btn generate-effect" onclick="regenerateFromAI()">
-                        🔄 Generate button
+                    <button class="effect-btn" onclick="regenerateFromAI()">
+                        🔄 Regenerate again from AI with text
                     </button>
                 </div>
             </div>
@@ -2084,7 +2070,7 @@
             // Show success message briefly
             const btn = document.querySelector('button[onclick="addTextBehind()"]');
             const originalText = btn.textContent;
-            btn.textContent = '✅ Effect Applied!';
+            btn.textContent = '✅ Text Added Behind!';
             btn.style.background = '#34c759';
             btn.style.borderColor = '#34c759';
             btn.style.color = 'white';
@@ -2097,85 +2083,12 @@
             }, 1500);
         }
 
-        function applySecondEffect() {
-            const activeObj = canvas.getActiveObject();
-            
-            if (activeObj && activeObj.type === 'i-text') {
-                // Apply gradient text effect
-                const gradient = new fabric.Gradient({
-                    type: 'linear',
-                    gradientUnits: 'percentage',
-                    coords: { x1: 0, y1: 0, x2: 1, y2: 1 },
-                    colorStops: [
-                        { offset: 0, color: '#ff6b6b' },
-                        { offset: 0.33, color: '#4ecdc4' },
-                        { offset: 0.66, color: '#45b7d1' },
-                        { offset: 1, color: '#96ceb4' }
-                    ]
-                });
-                
-                activeObj.set('fill', gradient);
-                activeObj.set('shadow', new fabric.Shadow({
-                    color: 'rgba(0,0,0,0.5)',
-                    blur: 8,
-                    offsetX: 0,
-                    offsetY: 4
-                }));
-                
-                canvas.renderAll();
-                updatePreview();
-                
-                // Show success message
-                const btn = document.querySelector('button[onclick="applySecondEffect()"]');
-                const originalText = btn.textContent;
-                btn.textContent = '✨ Effect Applied!';
-                btn.style.background = '#34c759';
-                btn.style.borderColor = '#34c759';
-                btn.style.color = 'white';
-                
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '#f2f2f7';
-                    btn.style.borderColor = '#e5e5e7';
-                    btn.style.color = '#1d1d1f';
-                }, 1500);
-                
-            } else if (activeObj && activeObj.type === 'image') {
-                // Apply vintage filter to images
-                const vintage = new fabric.Image.filters.Vintage();
-                const sepia = new fabric.Image.filters.Sepia();
-                
-                activeObj.filters = [sepia, vintage];
-                activeObj.applyFilters();
-                canvas.renderAll();
-                updatePreview();
-                
-                // Show success message
-                const btn = document.querySelector('button[onclick="applySecondEffect()"]');
-                const originalText = btn.textContent;
-                btn.textContent = '🎨 Vintage Applied!';
-                btn.style.background = '#34c759';
-                btn.style.borderColor = '#34c759';
-                btn.style.color = 'white';
-                
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '#f2f2f7';
-                    btn.style.borderColor = '#e5e5e7';
-                    btn.style.color = '#1d1d1f';
-                }, 1500);
-                
-            } else {
-                alert('Select a text or image object first to apply the second effect');
-            }
-        }
-
         function regenerateFromAI() {
             const btn = document.querySelector('button[onclick="regenerateFromAI()"]');
             const originalText = btn.textContent;
             
             // Show loading state
-            btn.textContent = '🔄 Generating...';
+            btn.textContent = '🔄 Regenerating...';
             btn.disabled = true;
             btn.style.background = '#ff9500';
             btn.style.borderColor = '#ff9500';
@@ -2237,14 +2150,16 @@
                 
                 loadingIndicator.style.display = 'none';
                 btn.disabled = false;
-                btn.textContent = '✅ Generated!';
+                btn.textContent = '✅ Regenerated with Text!';
                 btn.style.background = '#34c759';
                 btn.style.borderColor = '#34c759';
+                btn.style.color = 'white';
                 
                 setTimeout(() => {
                     btn.textContent = originalText;
-                    btn.style.background = '#34c759';
-                    btn.style.borderColor = '#34c759';
+                    btn.style.background = '#f2f2f7';
+                    btn.style.borderColor = '#e5e5e7';
+                    btn.style.color = '#1d1d1f';
                 }, 2000);
                 
             }, 2500);
